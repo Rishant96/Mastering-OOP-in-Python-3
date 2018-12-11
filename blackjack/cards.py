@@ -1,4 +1,5 @@
 from functools import partial
+import random
 
 class Suit:
 	def __init__( self, name, symbol ):
@@ -18,7 +19,7 @@ class Card:
 		self.hard, self.soft = self._points()
 
 	def __str__( self ):
-		return self.rank + ", " + self.suit.symbol
+		return self.suit.symbol + ' ' + self.rank
 
 class NumberCard( Card ):
 	def _points( self ):
@@ -92,6 +93,28 @@ deck = [card(rank, suit)
 	for suit in (Club, Diamond, Heart, Spade)
 		for rank in range(1,14)]
 
+class Deck:
+	def __init__( self ):
+		self._cards = [card4_3(r,s) for s in (Club, Heart, 
+				Diamond, Spade) for r in range(13)]
+		random.shuffle( self._cards )
+
+	def pop( self ):
+		return self._cards.pop()
+
+class Deck2( list ):
+	def __init__( self ):
+		super().__init__( card4_3(r+1,s) for r in range(13) for s in 
+			(Club, Diamond, Heart, Spade))
+		random.shuffle( self )
+
+
+
 if __name__ == '__main__':
-	for card in deck:
+	d = Deck()
+	print("\n")
+	print(d.__class__)
+	print("\n")
+	hand = [ d.pop(), d.pop() ]
+	for card in hand:
 		print(card)
