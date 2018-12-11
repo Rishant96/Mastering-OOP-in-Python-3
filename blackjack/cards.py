@@ -5,7 +5,6 @@ class Suit:
 	def __init__( self, name, symbol ):
 		self.name = name
 		self.symbol = symbol		
-
 	def __str__( self ):
 		return self.name + ": " + self.symbol
 
@@ -17,7 +16,6 @@ class Card:
 		self.suit = suit
 		self.rank = rank
 		self.hard, self.soft = self._points()
-
 	def __str__( self ):
 		return self.suit.symbol + ' ' + self.rank
 
@@ -98,23 +96,111 @@ class Deck:
 		self._cards = [card4_3(r,s) for s in (Club, Heart, 
 				Diamond, Spade) for r in range(13)]
 		random.shuffle( self._cards )
-
 	def pop( self ):
 		return self._cards.pop()
 
 class Deck2( list ):
 	def __init__( self ):
-		super().__init__( card4_3(r+1,s) for r in range(13) for s in 
-			(Club, Diamond, Heart, Spade))
+		super().__init__( card4_3(r+1,s) for r in range(13) for s 
+		in (Club, Diamond, Heart, Spade) )
 		random.shuffle( self )
 
+class Deck3( list ):
+	def __init__(self, decks=1):
+		super().__init__()
+		for i in range(decks):
+			self.extend( card4_3(r+1,s) for r in range(13) for s in
+			(Club, Diamond, Heart, Spade) )
+		random.shuffle( self )
+		burn = random.randint(1, 52)
+		for i in range(burn) : self.pop()
 
+class Hand:
+	def __init__(self, dealer_card):
+		self.dealer_card = dealer_card
+		self.cards = []
+	def hard_total(self):
+		return sum(c.hard for c in self.cards)
+	def soft_total(self)
+		return sum(c.soft for c in self.cards)
+
+class Hand2:
+	def __init__( self, dealer_card, *cards ):
+		self.dealer_card = dealer_card
+		self.cards = list(cards)
+	def hard_total( self ):
+		return sum(c.hard in self.cards)
+	def soft_total( self ):
+		return sum(c.soft in self.cards)
+
+class Hand3:
+	def __init__(self, *args, **kwargs):
+		if len(args) == 1 and isinstance(args[0],Hand3):
+			# Clone an existing hand; often a bad idea
+			other = args[0]
+			self.dealer_card = other.dealer_card
+			self.cards = other.cards
+		else:
+			# Build a fresh, new hand.
+			dealer_card, *cards = args
+			sel.dealer_card = dealer_card
+			self.cards = list(cards)
+
+class GameStrategy:
+	def insurance( self, hand ):
+		return False
+	def split( self, hand ):
+		return False
+	def double( self, hand ):
+		return False
+	def hit( self, hand ):
+		return sum(c.hard for c in hand.cards) <= 17
+
+class Table:
+	def __init__( self ):
+		self.deck = Deck()
+	def place_bet ( self, amount ):
+		print( "Bet", amount )
+	def get_hand( self ):
+		try:
+			self.hand = Hand2( d.pop(), d.pop(), d.pop() )
+			self.hole_card = d.pop()
+		except IndexError:
+			# Out of cards: need to shuffle
+			self.deck = Deck()
+			return self.get_hand()
+		print( "Deal", self.hand )
+		return self.hand
+	def can_insure( self, hand ):
+		return hand.dealer_card.insure 
+
+class BettingStrategy:
+	def bet( self ):
+		raise NotImplementedError( "No bet method" )
+	def record_win( self ):
+		pass
+	def record_loss( self ):
+		pass
+
+class Flat(BettingStrategy):
+	def bet( self ):
+		return 1 
+
+import abc
+
+class BettingStrategy2(metaclass=abc.ABCMeta):
+	@abstractmethod
+	def bet( self ):
+		return 1
+	def record_win( self ):
+		pass
+	def record_loss( self ):
+		pass
 
 if __name__ == '__main__':
 	d = Deck()
-	print("\n")
-	print(d.__class__)
-	print("\n")
-	hand = [ d.pop(), d.pop() ]
-	for card in hand:
-		print(card)
+	h = Hand2( d.pop(), d.pop(), d.pop() )
+	dumb = GameStrategy()
+
+	h = Hand( deck.pop(), deck.pop(), deck.pop() )
+	memento = Hand( h ) 
