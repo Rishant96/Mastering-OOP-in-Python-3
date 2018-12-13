@@ -1,5 +1,6 @@
 from functools import partial
 import random
+from abc import ABCMeta, abstractmethod 
 
 class Suit:
 	def __init__( self, name, symbol ):
@@ -116,12 +117,12 @@ class Deck3( list ):
 		for i in range(burn) : self.pop()
 
 class Hand:
-	def __init__(self, dealer_card):
+	def __init__( self, dealer_card ):
 		self.dealer_card = dealer_card
 		self.cards = []
-	def hard_total(self):
+	def hard_total( self ):
 		return sum(c.hard for c in self.cards)
-	def soft_total(self)
+	def soft_total( self ):
 		return sum(c.soft for c in self.cards)
 
 class Hand2:
@@ -145,6 +146,47 @@ class Hand3:
 			dealer_card, *cards = args
 			sel.dealer_card = dealer_card
 			self.cards = list(cards)
+
+class Hand4:
+	def __init__(self, *args, **kw):
+		if len(args) == 1 and isinstance(args[0], Hand4):
+			# Clone an existing hand often a bad idea
+			other = args[0]
+			self.dealer_card = other.dealer_card
+			self.cards = other.cards
+		elif len(args) == 2 and isinstance(args[0], Hand4) \
+		and 'split' in kw:
+			# Split an existing hand
+			other, card = args
+			self.dealer_card = other.dealer_card
+			self.cards = [other.cards[kw['split']], card]
+		elif len(args) == 3:
+			# Build a fresh, new hand.
+			dealer_card, *cards = args
+			self.dealer_card = dealer_card
+			self.cards = cards
+		else:
+			raise TypeError( "Invalid constructor args={0!r}"
+				"kw={1!r}".format(args, kw) )
+
+	def __str__(self):
+		return ", ".join( map(str, self.cards) )
+
+def Hand5:
+	def __init__( self, dealer_card, *cards ):
+		self.dealer_card = dealer_card
+		self.cards = list(cards)
+	@staticmethod
+	def freeze( other ):
+		hand = Hand5( other.dealer_card, *other.cards )
+		return hand
+	@staticmethod
+	def split( other, card0, card1 ):
+		hand0 = Hand5( other.dealer_card, other.cards[0], card0 )
+		hand1 = Hand5( other.dealer_card, other.cards[1], card1 )
+		return hand0, hand1
+	def __str__( self ):
+		return ", ".join( map(str, self.cards) )
 
 class GameStrategy:
 	def insurance( self, hand ):
@@ -186,9 +228,7 @@ class Flat(BettingStrategy):
 	def bet( self ):
 		return 1 
 
-import abc
-
-class BettingStrategy2(metaclass=abc.ABCMeta):
+class BettingStrategy2(metaclass=ABCMeta):
 	@abstractmethod
 	def bet( self ):
 		return 1
@@ -197,10 +237,67 @@ class BettingStrategy2(metaclass=abc.ABCMeta):
 	def record_loss( self ):
 		pass
 
-if __name__ == '__main__':
-	d = Deck()
-	h = Hand2( d.pop(), d.pop(), d.pop() )
-	dumb = GameStrategy()
+class Player:
+	def __init__( self, table, bet_strategy, game_strategy ):
+		"""Creates a new player associated with a table,
+		and configured with proper betting and play strategies
 
-	h = Hand( deck.pop(), deck.pop(), deck.pop() )
-	memento = Hand( h ) 
+		:param table: an instance of the :class:'Table'
+		:param bet_strategy: an instance of the :class:'BettingStrategy'
+		:param game_strategy: an instance of :class:'GameStrategy'
+		"""
+		self.bet_strategy = bet_strategy
+		self.game_strategy = game_strategy
+		self.table = table
+	def game( self ):
+		self.table.place_bet( self.bet_strategy.bet() )
+		self.hand = self.table.get_hand()
+		if self.table.can_insure( self.hand ):
+			if self.game_strategy.insurance( self.hand ):
+				self.table.insure( self.bet_strategy.bet() )
+
+class Player2:
+	def __init__( self, **kwargs ):
+		""" Must provide table, bet_strategy, game_strtegy. """
+		self.__dict__.update( kw )
+	def game( self ):
+		self.table.place_bet( self.bet_strategy.bet() )
+		self.hand = self.table.get_hand()
+		if self.table.can_insure( self.hand ):
+			if self.game_strategy.insurance( self.hand ):
+				self.table.insure( self.bet_strategy.bet() )
+	# etc.
+
+class Player3:
+	def __init__(self, table, bet_strategy, game_strategy, 
+		**extras):
+		self.bet_strategy = bet_strategy
+		self.game_strategy = game_strategy
+		self.table = table
+		self.__dict__.update( extras )
+
+class ValidPlayer:
+	def __init__(self, table, bet_strategy, game_strategy):
+		assert isinstance(table, Table)
+		assert isinstance(bet_strategy, BettingStrategy)
+		assert isinstance(game_strategy, GameStrategy)
+
+		self.table = table
+		self.game_strategy = game_strategy
+		self.bet_strategy = bet_strategy 
+
+if __name__ == '__main__':
+	table = Table()
+	flat_bet = Flat()
+	dumb = GameStrategy()
+	
+	p = Player(table, flat_bet, dumb)
+	p.game()
+
+	p1 = Player2( table=table, bet_strategy=flat_bet, 
+	game_strategy=dumb )
+	p1.game()
+
+	p2  Player2( table=table, bet_strategy=flat_bet, 
+	game_strategy=dumb, log_name="Flat/Dumb" )
+	p2.game()
